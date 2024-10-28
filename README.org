@@ -1,9 +1,7 @@
 #+TITLE: bootc demo for Summit Connect 2024
 #+OPTIONS: toc:nil
 
-* bootc demo for Summit Connect
-
-** Pre-demo
+* Pre-demo setup
 
 #+begin_src shell
   podman login quay.io/rh-ee-mskoett
@@ -22,7 +20,7 @@ Open Containerfile in emacs and run ~C-x 5 2~
 
 Adjust text size with ~text-scale-adjust~
 
-
+* Part 1 - develop SOE
 ** Write simple Containerfile
 
 #+begin_src shell
@@ -55,7 +53,7 @@ Highlight:
 **  Run using podman-bootc
 
 #+begin_src shell
-    podman-bootc run --filesystem=xfs quay.io/rh-ee-mskoett/bootc-demo:rhel9
+    podman-bootc run --filesystem=xfs quay.io/rh-ee-mskoett/demo-soe:latest
 #+end_src
 
 Highlight:
@@ -100,14 +98,14 @@ Reboot VM
   podman-bootc ssh <id>
 #+end_src
 
-* Virtual machine
+* Part 2 - boot in libvirt
 
-First pull image:
+First pull image as root:
 #+begin_src shell
   sudo podman pull quay.io/rh-ee-mskoett/demo-soe:latest
 #+end_src
 
-  Convert image to QCOW2:
+Convert image to QCOW2:
 #+begin_src shell
   sudo podman run \
        --rm \
