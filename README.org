@@ -1,0 +1,142 @@
+#+TITLE: bootc demo for Summit Connect 2024
+#+OPTIONS: toc:nil
+
+* bootc demo for Summit Connect
+
+** Pre-demo
+
+#+begin_src shell
+  podman login quay.io/rh-ee-mskoett
+  podman login registry.redhat.io
+  sudo podman login registry.redhat.io
+  podman machine start
+#+end_src
+
+Open a terminal and run ~tmux new -t demo~
+
+Create two panes
+
+Open another terminal window, zoom in and run ~tmux attach -t demo -f read-only~
+
+Open Containerfile in emacs and run ~C-x 5 2~
+
+Adjust text size with ~text-scale-adjust~
+
+
+** Write simple Containerfile
+
+#+begin_src shell
+  FROM registry.redhat.io/rhel9/rhel-bootc:latest
+  RUN echo "secret123" > /etc/my_secret
+  RUN echo "Hello bootc!" > /etc/motd
+#+end_src
+
+**  Build image
+
+#+begin_src shell
+  podman build -t quay.io/rh-ee-mskoett/demo-soe:latest .
+#+end_src
+
+** Push image
+#+begin_src shell
+  podman push quay.io/rh-ee-mskoett/demo-soe:latest
+#+end_src
+
+** Run as container
+
+#+begin_src shell
+  podman run -it --rm quay.io/rh-ee-mskoett/demo-soe:latest /bin/bash
+#+end_src
+
+Highlight:
+- ~ps faux~ only showing two processes and no systemd
+- ~uname -r~ showing host kernel version
+
+**  Run using podman-bootc
+
+#+begin_src shell
+    podman-bootc run --filesystem=xfs quay.io/rh-ee-mskoett/bootc-demo:rhel9
+#+end_src
+
+Highlight:
+- ~ps faux~ showing systemd and a full process tree
+- ~uname -r~ showing image kernel version
+
+** Update Containerfile
+#+begin_src shell
+  FROM registry.redhat.io/rhel9/rhel-bootc:latest
+  RUN dnf install -y insights-client && dnf clean all
+#+end_src
+
+Build and push
+#+begin_src shell
+  podman build -t quay.io/rh-ee-mskoett/demo-soe:latest .
+  podman push quay.io/rh-ee-mskoett/demo-soe:latest
+#+end_src
+
+** Update running "vm"
+
+First show current status
+
+#+begin_src shell
+  bootc status
+#+end_src
+
+Fetch update
+#+begin_src shell
+    bootc upgrade
+#+end_src
+
+Show status again - highlight the cachedUpdate
+
+Reboot VM
+
+#+begin_src shell
+  systemctl reboot
+#+end_src
+
+#+begin_src shell
+  podman-bootc list
+  podman-bootc ssh <id>
+#+end_src
+
+* Virtual machine
+
+First pull image:
+#+begin_src shell
+  sudo podman pull quay.io/rh-ee-mskoett/demo-soe:latest
+#+end_src
+
+  Convert image to QCOW2:
+#+begin_src shell
+  sudo podman run \
+       --rm \
+       -it \
+       --privileged \
+       --pull=newer \
+       --security-opt label=type:unconfined_t \
+       -v $(pwd)/output:/output \
+       -v /var/lib/containers/storage:/var/lib/containers/storage \
+       -v $(pwd)/config.toml:/config.toml:ro \
+       quay.io/centos-bootc/bootc-image-builder:latest \
+       --local \
+       --type qcow2 \
+       --rootfs xfs  \
+       quay.io/rh-ee-mskoett/demo-soe:latest
+#+end_src
+
+Launch VM:
+#+begin_src shell
+  sudo virt-install \
+      --name bootc-demo \
+      --cpu host \
+      --vcpus 4 \
+      --memory 4096 \
+      --import --disk ./output/qcow2/disk.qcow2,format=qcow2 \
+      --autoconsole text \
+      --os-variant rhel9.4
+#+end_src
+
+#+begin_src shell
+  sudo virsh undefine bootc-demo
+#+end_src
