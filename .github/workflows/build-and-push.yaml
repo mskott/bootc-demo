@@ -11,6 +11,7 @@ env:
   QUAY: quay.io
   REDHAT: registry.redhat.io
   IMAGE_NAME: rh-ee-mskoett/rhel10-soe:latest
+  TAGLIST: latest ${{ github.sha }} ${{ github.ref_name }}
 
 jobs:
   build-and-push-image:
@@ -35,7 +36,7 @@ jobs:
         uses: redhat-actions/buildah-build@v2
         with:
           image: ${{ env.IMAGE_NAME }}
-          tags: latest
+          tags: {{ env.TAGLIST }}
           containerfiles: |
             ./Containerfile
 
