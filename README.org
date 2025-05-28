@@ -24,7 +24,7 @@ Adjust text size with ~text-scale-adjust~
 ** Write simple Containerfile
 
 #+begin_src shell
-  FROM registry.redhat.io/rhel9/rhel-bootc:latest
+  FROM registry.redhat.io/rhel10/rhel-bootc:latest
   RUN echo "secret123" > /etc/my_secret
   RUN echo "Hello bootc!" > /etc/motd
 #+end_src
@@ -32,18 +32,18 @@ Adjust text size with ~text-scale-adjust~
 **  Build image
 
 #+begin_src shell
-  podman build -t quay.io/rh-ee-mskoett/demo-soe:latest .
+  podman build -t quay.io/rh-ee-mskoett/rhel10-soe:latest .
 #+end_src
 
 ** Push image
 #+begin_src shell
-  podman push quay.io/rh-ee-mskoett/demo-soe:latest
+  podman push quay.io/rh-ee-mskoett/rhel10-soe:latest
 #+end_src
 
 ** Run as container
 
 #+begin_src shell
-  podman run -it --rm quay.io/rh-ee-mskoett/demo-soe:latest /bin/bash
+  podman run -it --rm quay.io/rh-ee-mskoett/rhel10-soe:latest /bin/bash
 #+end_src
 
 Highlight:
@@ -53,7 +53,7 @@ Highlight:
 **  Run using podman-bootc
 
 #+begin_src shell
-    podman-bootc run --filesystem=xfs quay.io/rh-ee-mskoett/demo-soe:latest
+    podman-bootc run --filesystem=xfs quay.io/rh-ee-mskoett/rhel10-soe:latest
 #+end_src
 
 Highlight:
@@ -68,8 +68,8 @@ Highlight:
 
 Build and push
 #+begin_src shell
-  podman build -t quay.io/rh-ee-mskoett/demo-soe:latest .
-  podman push quay.io/rh-ee-mskoett/demo-soe:latest
+  podman build -t quay.io/rh-ee-mskoett/rhel10-soe:latest .
+  podman push quay.io/rh-ee-mskoett/rhel10-soe:latest
 #+end_src
 
 ** Update running "vm"
@@ -102,37 +102,38 @@ Reboot VM
 
 First pull image as root:
 #+begin_src shell
-  sudo podman pull quay.io/rh-ee-mskoett/demo-soe:latest
+  sudo podman pull quay.io/rh-ee-mskoett/rhel10-soe:latest
 #+end_src
 
 Convert image to QCOW2:
 #+begin_src shell
   sudo podman run \
-       --rm \
-       -it \
-       --privileged \
-       --pull=newer \
-       --security-opt label=type:unconfined_t \
-       -v $(pwd)/output:/output \
-       -v /var/lib/containers/storage:/var/lib/containers/storage \
-       -v $(pwd)/config.toml:/config.toml:ro \
-       quay.io/centos-bootc/bootc-image-builder:latest \
-       --local \
-       --type qcow2 \
-       --rootfs xfs  \
-       quay.io/rh-ee-mskoett/demo-soe:latest
+      --rm \
+      -it \
+      --privileged \
+      --pull=newer \
+      --security-opt label=type:unconfined_t \
+      -v $(pwd)/config.toml:/config.toml:ro \
+      -v $(pwd)/output:/output \
+      -v /var/lib/containers/storage:/var/lib/containers/storage \
+      registry.redhat.io/rhel10/bootc-image-builder:latest \
+      --local \
+      --type qcow2 \
+      quay.io/rh-ee-mskoett/rhel10-soe:latest
 #+end_src
 
 Launch VM:
 #+begin_src shell
   sudo virt-install \
       --name bootc-demo \
-      --cpu host \
+      --cpu host-model \
       --vcpus 4 \
       --memory 4096 \
       --import --disk ./output/qcow2/disk.qcow2,format=qcow2 \
       --autoconsole text \
-      --os-variant rhel9.4
+      --os-variant rhel10.0 \
+      --transient \
+      --destroy-on-exit
 #+end_src
 
 #+begin_src shell
