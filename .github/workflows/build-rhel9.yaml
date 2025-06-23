@@ -1,0 +1,55 @@
+---
+name: Build RHEL 9 bootable container image
+
+on:
+  push:
+    branches:
+      - 'main'
+  workflow_dispatch:
+
+env:
+  QUAY: quay.io
+  REDHAT: registry.redhat.io
+  IMAGE_NAME: rh-ee-mskoett/rhel9-soe
+  TAGLIST: latest ${{ github.sha }} ${{ github.ref_name }}
+
+jobs:
+  build-and-push-image:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Login to Red Hat registry
+        uses: redhat-actions/podman-login@v1
+        with:
+          registry: ${{ env.REDHAT }}
+          username: ${{ vars.REDHAT_USER }}
+          password: ${{ secrets.REDHAT_TOKEN }}
+
+      - name: Build image
+        id: build-image
+        uses: redhat-actions/buildah-build@v2
+        with:
+          image: ${{ env.IMAGE_NAME }}
+          tags: ${{ env.TAGLIST }}
+          containerfiles: |
+            ./Containerfile.rhel9
+
+      - name: Login to Quay
+        uses: redhat-actions/podman-login@v1
+        with:
+          registry: ${{ env.QUAY }}
+          username: ${{ vars.QUAY_USER }}
+          password: ${{ secrets.QUAY_TOKEN }}
+
+      - name: Push image to Quay
+        uses: redhat-actions/push-to-registry@v2
+        with:
+          image: ${{ steps.build-image.outputs.image }}
+          tags: ${{ steps.build-image.outputs.tags }}
+          registry: ${{ env.QUAY }}

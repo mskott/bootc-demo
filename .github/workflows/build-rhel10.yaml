@@ -1,5 +1,5 @@
 ---
-name: Build bootc container image
+name: Build RHEL 10 bootable container image
 
 on:
   push:
@@ -38,7 +38,7 @@ jobs:
           image: ${{ env.IMAGE_NAME }}
           tags: ${{ env.TAGLIST }}
           containerfiles: |
-            ./Containerfile
+            ./Containerfile.rhel10
 
       - name: Login to Quay
         uses: redhat-actions/podman-login@v1
