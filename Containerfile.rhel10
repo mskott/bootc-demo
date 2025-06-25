@@ -1,3 +1,3 @@
 FROM registry.redhat.io/rhel10/rhel-bootc:10.0
 RUN echo "secret123" > /etc/my_secret
-RUN echo "Hello bootc!" > /etc/motd
+RUN echo "This is a RHEL10 server managed using image mode" > /etc/motd
