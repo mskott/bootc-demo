@@ -1,4 +1,4 @@
-#+TITLE: bootc demo for Summit Connect 2024
+#+TITLE: bootc demo
 #+OPTIONS: toc:nil
 
 * Pre-demo setup
@@ -6,19 +6,7 @@
 #+begin_src shell
   podman login quay.io/rh-ee-mskoett
   podman login registry.redhat.io
-  sudo podman login registry.redhat.io
-  podman machine start
 #+end_src
-
-Open a terminal and run ~tmux new -t demo~
-
-Create two panes
-
-Open another terminal window, zoom in and run ~tmux attach -t demo -f read-only~
-
-Open Containerfile in emacs and run ~C-x 5 2~
-
-Adjust text size with ~text-scale-adjust~
 
 * Part 1 - develop SOE
 ** Write simple Containerfile
@@ -50,59 +38,11 @@ Highlight:
 - ~ps faux~ only showing two processes and no systemd
 - ~uname -r~ showing host kernel version
 
-**  Run using podman-bootc
-
-#+begin_src shell
-    podman-bootc run --filesystem=xfs quay.io/rh-ee-mskoett/rhel10-soe:latest
-#+end_src
-
-Highlight:
-- ~ps faux~ showing systemd and a full process tree
-- ~uname -r~ showing image kernel version
-
-** Update Containerfile
-#+begin_src shell
-  FROM registry.redhat.io/rhel9/rhel-bootc:latest
-  RUN dnf install -y insights-client && dnf clean all
-#+end_src
-
-Build and push
-#+begin_src shell
-  podman build -t quay.io/rh-ee-mskoett/rhel10-soe:latest .
-  podman push quay.io/rh-ee-mskoett/rhel10-soe:latest
-#+end_src
-
-** Update running "vm"
-
-First show current status
-
-#+begin_src shell
-  bootc status
-#+end_src
-
-Fetch update
-#+begin_src shell
-    bootc upgrade
-#+end_src
-
-Show status again - highlight the cachedUpdate
-
-Reboot VM
-
-#+begin_src shell
-  systemctl reboot
-#+end_src
-
-#+begin_src shell
-  podman-bootc list
-  podman-bootc ssh <id>
-#+end_src
-
 * Part 2 - boot in libvirt
 
 First pull image as root:
 #+begin_src shell
-  sudo podman pull quay.io/rh-ee-mskoett/rhel10-soe:latest
+  sudo podman pull quay.io/rh-ee-mskoett/rhel9-soe:latest
 #+end_src
 
 Convert image to QCOW2:
@@ -117,9 +57,13 @@ Convert image to QCOW2:
       -v $(pwd)/output:/output \
       -v /var/lib/containers/storage:/var/lib/containers/storage \
       registry.redhat.io/rhel10/bootc-image-builder:latest \
-      --local \
       --type qcow2 \
-      quay.io/rh-ee-mskoett/rhel10-soe:latest
+      quay.io/rh-ee-mskoett/rhel9-soe:latest
+#+end_src
+
+Create COW copy of image...
+#+begin_src shell
+  sudo qemu-img create -b disk.qcow2 -f qcow2 -F qcow2 output/qcow2/bootc-demo.qcow2
 #+end_src
 
 Launch VM:
@@ -129,13 +73,26 @@ Launch VM:
       --cpu host-model \
       --vcpus 4 \
       --memory 4096 \
-      --import --disk ./output/qcow2/disk.qcow2,format=qcow2 \
+      --import --disk ./output/qcow2/bootc-demo.qcow2,format=qcow2 \
       --autoconsole text \
       --os-variant rhel10.0 \
       --transient \
       --destroy-on-exit
 #+end_src
 
+Perform an upgrade
+#+begin_src shell
+  bootc upgrade --check
+  bootc upgrade --apply
+#+end_src
+
+Switch to RHEL10:
+#+begin_src shell
+  bootc switch quay.io/rh-ee-mskoett/rhel10-soe:latest
+  bootc status
+#+end_src
+
+Remove old VM (optional)
 #+begin_src shell
   sudo virsh undefine bootc-demo
 #+end_src
