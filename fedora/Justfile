@@ -1,0 +1,17 @@
+repo_url := "quay.io/rh-ee-mskoett"
+
+base_image_name := "fedora-base"
+base_image_tag := "43"
+
+# Build both images
+build: build-base
+
+# Push both images to repo_url
+push: push-base
+
+# Build the base image
+build-base:
+    podman build -t {{ repo_url }}/{{ base_image_name }}:{{ base_image_tag }} -f Containerfile.base
+
+push-base:
+    podman push {{ repo_url }}/{{ base_image_name }}:{{ base_image_tag }}
