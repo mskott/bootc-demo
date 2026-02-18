@@ -1,0 +1,15 @@
+[Unit]
+Description=Run the nginx webserver in a container
+
+[Container]
+Label=app=nginc
+Image=docker.io/nginx:1.29
+AutoUpdate=registry
+PublishPort=80:80
+
+[Service]
+Restart=always
+TimeoutStartSec=900
+
+[Install]
+WantedBy=multi-user.target default.target

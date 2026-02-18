@@ -1,0 +1,9 @@
+FROM quay.io/rh-ee-mskoett/fedora-base:43
+
+# Enable automatic container updates
+RUN systemctl enable podman-auto-update.timer
+
+# Deploy Quadlet with nginx container
+COPY nginx-quadlet.container /usr/share/containers/systemd
+
+RUN bootc container lint

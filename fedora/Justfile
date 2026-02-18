@@ -1,17 +1,34 @@
-repo_url := "quay.io/rh-ee-mskoett"
+repo_url := "quay.io/rh-ee-mskoett" # Repo images a pushed to
 
+# name and tag to use for the base image
 base_image_name := "fedora-base"
 base_image_tag := "43"
 
+# name and tag to use for application image
+application_image_name := "application"
+application_image_tag := "43-29"
+
 # Build both images
-build: build-base
+build: build-base build-application
 
 # Push both images to repo_url
-push: push-base
+push: push-base push-application
 
 # Build the base image
 build-base:
     podman build -t {{ repo_url }}/{{ base_image_name }}:{{ base_image_tag }} -f Containerfile.base
 
+# Push the base image
 push-base:
     podman push {{ repo_url }}/{{ base_image_name }}:{{ base_image_tag }}
+
+# Build the base image
+build-application:
+    podman build -t {{ repo_url }}/{{ application_image_name }}:{{ application_image_tag }} -f Containerfile.application
+
+# Push the application image
+push-application:
+    podman push {{ repo_url }}/{{ application_image_name }}:{{ application_image_tag }}
+
+login:
+    podman login {{ repo_url }}
