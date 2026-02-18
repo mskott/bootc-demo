@@ -8,6 +8,8 @@ base_image_tag := "43"
 application_image_name := "application"
 application_image_tag := "43-29"
 
+bib_image := "quay.io/centos-bootc/bootc-image-builder:latest"
+
 # Build both images
 build: build-base build-application
 
@@ -30,5 +32,26 @@ build-application:
 push-application:
     podman push {{ repo_url }}/{{ application_image_name }}:{{ application_image_tag }}
 
+# Log in to the repo_url
 login:
     podman login {{ repo_url }}
+
+bib-qcow:
+    mkdir -p {{ invocation_dir() }}/output
+
+    @echo "Commands use sudo so might ask for your password!"
+    sudo podman pull {{ repo_url }}/{{ base_image_name }}:{{ base_image_tag }}
+    sudo podman run \
+    --rm \
+    -it \
+    --privileged \
+    --pull=newer \
+    --security-opt label=type:unconfined_t \
+    -v {{ invocation_dir() }}/config.toml:/config.toml:ro \
+    -v {{ invocation_dir() }}/output:/output \
+    -v /var/lib/containers/storage:/var/lib/containers/storage \
+    {{ bib_image }} \
+    --type qcow2 \
+    --rootfs xfs \
+    --use-librepo \
+    {{ repo_url }}/{{ base_image_name }}:{{ base_image_tag }}
