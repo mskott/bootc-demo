@@ -36,6 +36,7 @@ push-application:
 login:
     podman login {{ repo_url }}
 
+# Build a QCOW2 file from the base image
 bib-qcow:
     mkdir -p {{ invocation_dir() }}/output
 
@@ -55,3 +56,13 @@ bib-qcow:
     --rootfs xfs \
     --use-librepo \
     {{ repo_url }}/{{ base_image_name }}:{{ base_image_tag }}
+
+# Start a VM with the base image
+start-vm:
+    sudo virt-install \
+    --name bootc-demo \
+    --cpu model=host-model \
+    --vcpus 4 \
+    --memory 4096 \
+    --import --disk {{ invocation_dir() }}/output/qcow2/disk.qcow2,format=qcow2 \
+    --os-variant fedora-eln
