@@ -2,7 +2,8 @@ FROM quay.io/fedora/fedora-bootc:43
 
 # Install some standard packages
 RUN <<EOF
-dnf install -y greenboot greenboot-default-health-checks
+dnf install -y greenboot greenboot-default-health-checks \
+    qemu-guest-agent
 dnf clean all
 rm -rf /var/log/dnf5.log /var/cache/libdnf5 /var/lib/dnf
 EOF
