@@ -9,6 +9,7 @@ application_image_name := "application"
 application_image_tag := "43-29"
 
 bib_image := "quay.io/centos-bootc/bootc-image-builder:latest"
+vm_name := "bootc-demo"
 
 # Build both images
 build: build-base build-application
@@ -57,12 +58,30 @@ bib-qcow:
     --use-librepo \
     {{ repo_url }}/{{ base_image_name }}:{{ base_image_tag }}
 
-# Start a VM with the base image
-start-vm:
+# Create and start a VM with the base image
+vm-create:
     sudo virt-install \
-    --name bootc-demo \
+    --name {{ vm_name }} \
     --cpu model=host-model \
     --vcpus 4 \
     --memory 4096 \
     --import --disk {{ invocation_dir() }}/output/qcow2/disk.qcow2,format=qcow2 \
-    --os-variant fedora-eln
+    --os-variant fedora-eln \
+    --noautoconsole
+
+# Start the VM
+vm-start:
+    sudo virsh start {{ vm_name }}
+
+# Shutdown the VM
+vm-stop:
+    sudo virsh shutdown {{ vm_name }}
+
+# Delete VM and QCOW2 file
+vm-delete:
+    sudo virsh destroy {{ vm_name }}
+    sudo rm -rf {{ invocation_dir() }}/output
+
+# Display VM ip address
+vm-ip:
+    sudo virsh domifaddr {{ vm_name }}
