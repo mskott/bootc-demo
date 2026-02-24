@@ -11,6 +11,9 @@ application_image_tag := "43-29"
 bib_image := "quay.io/centos-bootc/bootc-image-builder:latest"
 vm_name := "bootc-demo"
 
+default:
+    just --list
+
 # Build both images
 build: build-base build-application
 
@@ -79,8 +82,7 @@ vm-stop:
 
 # Delete VM and QCOW2 file
 vm-delete:
-    sudo virsh destroy {{ vm_name }}
-    sudo rm -rf {{ invocation_dir() }}/output
+    sudo virsh undefine --remove-all-storage {{ vm_name }}
 
 # Display VM ip address
 vm-ip:
