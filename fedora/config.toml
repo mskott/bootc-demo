@@ -1,0 +1,4 @@
+[[customizations.user]]
+name = "fedora"
+password = "fedora123!"
+groups = ["wheel"]

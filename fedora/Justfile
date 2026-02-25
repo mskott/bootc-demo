@@ -1,0 +1,105 @@
+# Repo images a pushed to
+repo_url := "quay.io/rh-ee-mskoett"
+
+# name and tag to use for the base image
+base_image_name := "fedora-base"
+base_image_tag := "43"
+_base_image := f"{{ repo_url }}/{{ base_image_name }}:{{ base_image_tag }}"
+
+# name and tag to use for application image
+application_image_name := "application"
+application_image_tag := "43-29"
+_application_image := f"{{ repo_url }}/{{ application_image_name }}:{{ application_image_tag }}"
+
+bib_image := "quay.io/centos-bootc/bootc-image-builder:latest"
+vm_name := "bootc-demo"
+
+default:
+    @echo "Run 'just prepare' to get everything ready for a demo"
+    just --list
+
+# Build both images
+build: build-base build-application
+
+# Push both images to repo_url
+push: push-base push-application
+
+# Build the base image
+build-base:
+    podman build -t {{ _base_image }} -f Containerfile.base
+
+# Push the base image
+push-base:
+    podman push {{ _base_image }}
+
+# Build the application image
+build-application:
+    podman build -t {{ _application_image }} -f Containerfile.application
+
+# Push the application image
+push-application:
+    podman push {{ _application_image }}
+
+# Log in to the repo_url
+login:
+    podman login {{ repo_url }}
+
+# Build a QCOW2 file from the base image
+bib-qcow:
+    mkdir -p {{ invocation_dir() }}/output
+
+    @echo "Commands use sudo so might ask for your password!"
+    sudo podman pull {{ _base_image }}
+    sudo podman run \
+    --rm \
+    -it \
+    --privileged \
+    --pull=newer \
+    --security-opt label=type:unconfined_t \
+    -v {{ invocation_dir() }}/config.toml:/config.toml:ro \
+    -v {{ invocation_dir() }}/output:/output \
+    -v /var/lib/containers/storage:/var/lib/containers/storage \
+    {{ bib_image }} \
+    --type qcow2 \
+    --rootfs xfs \
+    --use-librepo \
+    {{ _base_image }}
+
+# Create and start a VM with the base image
+vm-create:
+    sudo virt-install \
+    --name {{ vm_name }} \
+    --cpu model=host-model \
+    --vcpus 4 \
+    --memory 4096 \
+    --import --disk {{ invocation_dir() }}/output/qcow2/disk.qcow2,format=qcow2 \
+    --os-variant fedora-eln \
+    --noautoconsole
+
+# Start the VM
+vm-start:
+    sudo virsh start {{ vm_name }}
+
+# Shutdown the VM
+vm-stop:
+    -sudo virsh shutdown {{ vm_name }}
+
+# Delete VM and QCOW2 file
+vm-delete:
+    -sudo virsh undefine --remove-all-storage {{ vm_name }}
+
+# Display VM ip address
+vm-ip:
+    sudo virsh domifaddr {{ vm_name }}
+
+# Remove VM, QCOW2, and local images
+clean: vm-stop vm-delete
+    sudo rm -rf {{ invocation_dir() }}/output
+    sudo podman image rm -i {{ bib_image }}
+    sudo podman image rm -i {{ _base_image }}
+    podman image rm -i {{ _application_image }}
+    podman image rm -i {{ _base_image }}
+    @echo "Clean up done - remember to delete images from {{ repo_url }}"
+
+# Prepare everyting to run a demo
+prepare: login build push bib-qcow vm-create
